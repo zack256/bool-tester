@@ -51,72 +51,25 @@ def remove_nots_from_expression(expression):
         elif expression[not_idx] == "-":
             expression.pop(not_idx)
         start = not_idx
+        
+gate_expressions = {
+    "AND" : ["^", lambda a, b : a == "1" and b == "1"],
+    "OR" : ["|", lambda a, b : a == "1" or b == "1"],
+    "XOR" : ["*", lambda a, b : a != b],
+    "COND" : [">", lambda a, b : not a == "1" or b == "1"],
+    "BICOND" : ["=", lambda a, b : a == b],
+}
 
-def remove_ands_from_expression(expression):
+def remove_sub_expression(expression, gate_name):
     start = 0
+    gate_char, gate_func = gate_expressions[gate_name]
     while True:
-        next_idx = list_find(expression, "^", start)
+        next_idx = list_find(expression, gate_char, start)
         if next_idx == -1:
             return
         first_char = expression.pop(next_idx - 1)
         second_char = expression.pop(next_idx)
-        if first_char == second_char == "1":
-            expression[next_idx - 1] = "1"
-        else:
-            expression[next_idx - 1] = "0"
-        start = next_idx
-
-def remove_ors_from_expression(expression):
-    start = 0
-    while True:
-        next_idx = list_find(expression, "|", start)
-        if next_idx == -1:
-            return
-        first_char = expression.pop(next_idx - 1)
-        second_char = expression.pop(next_idx)
-        if first_char == "1" or second_char == "1":
-            expression[next_idx - 1] = "1"
-        else:
-            expression[next_idx - 1] = "0"
-        start = next_idx
-
-def remove_material_conditionals_from_expression(expression):
-    start = 0
-    while True:
-        next_idx = list_find(expression, ">", start)
-        if next_idx == -1:
-            return
-        first_char = expression.pop(next_idx - 1)
-        second_char = expression.pop(next_idx)
-        if first_char == "1" and second_char == "0":
-            expression[next_idx - 1] = "0"
-        else:
-            expression[next_idx - 1] = "1"
-        start = next_idx
-
-def remove_material_biconditionals_from_expression(expression):
-    start = 0
-    while True:
-        next_idx = list_find(expression, "=", start)
-        if next_idx == -1:
-            return
-        first_char = expression.pop(next_idx - 1)
-        second_char = expression.pop(next_idx)
-        if first_char == second_char:
-            expression[next_idx - 1] = "1"
-        else:
-            expression[next_idx - 1] = "0"
-        start = next_idx
-
-def remove_xors_from_expression(expression):
-    start = 0
-    while True:
-        next_idx = list_find(expression, "*", start)
-        if next_idx == -1:
-            return
-        first_char = expression.pop(next_idx - 1)
-        second_char = expression.pop(next_idx)
-        if first_char != second_char:
+        if gate_func(first_char, second_char):
             expression[next_idx - 1] = "1"
         else:
             expression[next_idx - 1] = "0"
@@ -125,12 +78,11 @@ def remove_xors_from_expression(expression):
 def calculate_expression_without_parenthesis(expression):
     #print(expression)
     remove_nots_from_expression(expression)
-    remove_ands_from_expression(expression)
-    remove_xors_from_expression(expression)
-    remove_ors_from_expression(expression)
-    remove_material_conditionals_from_expression(expression)
-    remove_material_biconditionals_from_expression(expression)
-    #print(expression)
+    remove_sub_expression(expression, "AND")
+    remove_sub_expression(expression, "XOR")
+    remove_sub_expression(expression, "OR")
+    remove_sub_expression(expression, "COND")
+    remove_sub_expression(expression, "BICOND")
     return expression[0]    # should only be 1 character left, 0 or 1.
 
 def calculate_expression(expression):
