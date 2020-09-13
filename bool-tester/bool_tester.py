@@ -1,9 +1,7 @@
 import string
 import itertools as it
 
-ALLOWED_CHARACTERS = "()10^|*>-="
-
-def check_valid_expression(expression):
+def check_valid_expression(expression, allowed_characters):
     # works 99% of the time!
     open_parens = 0
     for i in expression:
@@ -11,7 +9,7 @@ def check_valid_expression(expression):
             open_parens += 1
         elif i == ")":
             open_parens -= 1
-        elif i not in string.ascii_letters and i not in ALLOWED_CHARACTERS:
+        elif i not in string.ascii_letters and i not in allowed_characters:
             return False
     return open_parens == 0
 
@@ -38,42 +36,53 @@ def list_find(l, x, start = 0):
 
 def remove_nots_from_expression(expression):
     # this function will correctly handle "--A". (not not A)
-    start = 0
-    while True:
-        not_idx = list_find(expression, "-", start)
-        if not_idx == -1:
-            return 
-        expression.pop(not_idx)
-        if expression[not_idx] == "0":
-            expression[not_idx] = "1"
-        elif expression[not_idx] == "1":
-            expression[not_idx] = "0"
-        elif expression[not_idx] == "-":
+    for not_char in gate_characters["NOT"]:
+        start = 0
+        while True:
+            not_idx = list_find(expression, not_char, start)
+            if not_idx == -1:
+                break 
             expression.pop(not_idx)
-        start = not_idx
-        
+            if expression[not_idx] == "0":
+                expression[not_idx] = "1"
+            elif expression[not_idx] == "1":
+                expression[not_idx] = "0"
+            elif expression[not_idx] == "-":
+                expression.pop(not_idx)
+            start = not_idx
+
+gate_characters = {
+    "NOT" : "-!~",
+    "AND" : "^&",
+    "OR" : "|",
+    "XOR" : "*",
+    "COND" : ">",
+    "BICOND" : "=",
+}
+
 gate_expressions = {
-    "AND" : ["^", lambda a, b : a == "1" and b == "1"],
-    "OR" : ["|", lambda a, b : a == "1" or b == "1"],
-    "XOR" : ["*", lambda a, b : a != b],
-    "COND" : [">", lambda a, b : not a == "1" or b == "1"],
-    "BICOND" : ["=", lambda a, b : a == b],
+    "AND" : lambda a, b : a == "1" and b == "1",
+    "OR" : lambda a, b : a == "1" or b == "1",
+    "XOR" : lambda a, b : a != b,
+    "COND" : lambda a, b : not a == "1" or b == "1",
+    "BICOND" : lambda a, b : a == b,
 }
 
 def remove_sub_expression(expression, gate_name):
-    start = 0
-    gate_char, gate_func = gate_expressions[gate_name]
-    while True:
-        next_idx = list_find(expression, gate_char, start)
-        if next_idx == -1:
-            return
-        first_char = expression.pop(next_idx - 1)
-        second_char = expression.pop(next_idx)
-        if gate_func(first_char, second_char):
-            expression[next_idx - 1] = "1"
-        else:
-            expression[next_idx - 1] = "0"
-        start = next_idx
+    gate_func = gate_expressions[gate_name]
+    for gate_char in gate_characters[gate_name]:
+        start = 0
+        while True:
+            next_idx = list_find(expression, gate_char, start)
+            if next_idx == -1:
+                break
+            first_char = expression.pop(next_idx - 1)
+            second_char = expression.pop(next_idx)
+            if gate_func(first_char, second_char):
+                expression[next_idx - 1] = "1"
+            else:
+                expression[next_idx - 1] = "0"
+            start = next_idx
 
 def calculate_expression_without_parenthesis(expression):
     #print(expression)
@@ -114,8 +123,8 @@ def print_result(combo, result):
         print(" " + bool_letters[combo[i]] + " |", end = "")
     print(" " + bool_letters[int(result)])
 
-def explore_expression(expression):
-    if not check_valid_expression(expression):
+def explore_expression(expression, allowed_characters):
+    if not check_valid_expression(expression, allowed_characters):
         print("Invalid expression!")
         return
     variables = get_variables(expression)
@@ -133,9 +142,16 @@ def explore_expression(expression):
         replace_variables(expression_list, variables, combo)
         res = calculate_expression(expression_list)
         print_result(combo, res)
+        
+def build_allowed_characters():
+    allowed_characters= ""
+    for gate in gate_characters:
+        allowed_characters += gate_characters[gate]
+    return allowed_characters
 
+allowed_characters = build_allowed_characters()
 while True:
     inp = input()
     if inp == "quit":
         break
-    explore_expression(inp)
+    explore_expression(inp, allowed_characters)
